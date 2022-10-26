@@ -4,6 +4,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0">
   <title>{{ with .Title }}{{ printf "%s | " . }}{{ end }}{{ site.Title }}</title>
+
+  {{ $noop := .Content }}
+  {{ if or (.HasShortcode "mathjax") (.Page.Store.Get "hasMathjax") }}
+    {{ partial "mathjax.html" }}
+  {{ end }}
+
+
 </head>
 <body>
 {{ block "main" . }}
