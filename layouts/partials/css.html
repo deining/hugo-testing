@@ -1,0 +1,7 @@
+{{ with resources.Get "sass/main.scss" }}
+  {{ with $css := . | toCSS | minify | fingerprint }}
+    {{ with resources.Copy (printf "css/style.%d.min.css" (crypto.FNV32a .Content)) . }}
+      <link rel="stylesheet" href="{{ .RelPermalink }}" integrity="{{ $css.Data.Integrity }}" crossorigin="anonymous">
+    {{ end }}
+  {{ end }}
+{{ end }}
