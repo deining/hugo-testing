@@ -1,4 +1,36 @@
 {{ define "main" }}
   <h1>{{ .Title }}</h1>
   {{ .Content }}
+
+<h2> Using resources.Copy with a page resource</h2>
+<pre>
+&lbrace;{ with .Resources.Get "page-resource.jpg" }}
+  &lbrace;{ with . | resources.Copy "foo.jpg" }}
+    &lt;img src="&lbrace;{ .RelPermalink }}" width="&lbrace;{ .Width }}" height="&lbrace;{ .Height }}" alt="">
+  &lbrace;{ end }}
+&lbrace;{ end }}
+</pre>
+
+{{ with .Resources.Get "page-resource.jpg" }}
+  {{ with . | resources.Copy "foo.jpg" }}
+    <img src="{{ .RelPermalink }}" width="{{ .Width }}" height="{{ .Height }}" alt="">
+  {{ end }}
+{{ end }}
+
+<h2> Using resources.Copy with a global resource</h2>
+
+<pre>
+&lbrace;{ with resources.Get "global-resource.jpg" }}
+  &lbrace;{ with . | resources.Copy "bar.jpg" }}
+    &lt;img src="&lbrace;{ .RelPermalink }}" width="&lbrace;{ .Width }}" height="&lbrace;{ .Height }}" alt="">
+  &lbrace;{ end }}
+&lbrace;{ end }}
+</pre>
+
+{{ with resources.Get "global-resource.jpg" }}
+  {{ with . | resources.Copy "bar.jpg" }}
+    <img src="{{ .RelPermalink }}" width="{{ .Width }}" height="{{ .Height }}" alt="">
+  {{ end }}
+{{ end }}
+
 {{ end }}
