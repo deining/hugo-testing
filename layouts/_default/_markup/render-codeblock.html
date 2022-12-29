@@ -1,8 +1,8 @@
 {{- $ctx := . }}
 
 {{- $attrs := .Attributes }}
-{{- $code := .Code  }}
-{{- $lang := .Lang  }}
+{{- $code := .Inner  }}
+{{- $lang := .Type  }}
 {{- $opts := .Options }}
 {{- $ordinal := .Ordinal }}
 {{- $page := .Page }}
@@ -14,20 +14,14 @@ $opts     --> {{ $opts }}
 $lang     --> {{ $lang }}
 </pre>
 
-{{- /* https://github.com/gohugoio/hugo/issues/9573 */}}
-{{- $isKnownChromaLexer := true }}
-{{- if strings.HasPrefix (strings.ToLower $lang) "kroki" }}
-  {{- $isKnownChromaLexer = false }}
-{{- end }}
-
 {{- if eq (strings.ToLower $lang) "mermaid" }}
   <div class="mermaid">
-    {{- .Code | safeHTML }}
+    {{- $code | safeHTML }}
   </div>
-  {{ .Page.Store.Set "hasMermaid" true }}
-{{- else if $isKnownChromaLexer }}
-  {{- $r := transform.HighlightCodeBlock $ctx }}
-  {{- $r.Body }}
+  {{- .Page.Store.Set "hasMermaid" true }}
+{{- else if transform.CanHighlight $lang }}
+  {{- $result := transform.HighlightCodeBlock $ctx }}
+  {{- $result.Wrapped }}
 {{- else }}
   {{- if strings.HasPrefix (strings.ToLower $lang) "kroki" }}
     {{- $url := "https://kroki.io/" }}
@@ -38,14 +32,10 @@ $lang     --> {{ $lang }}
       "svgbob" "umlet" "vega" "vegalite" "wavedrom"
     }}
     {{- $typesDelimited := delimit $supportedTypes ", " ", and " }}
-
     {{- with $diagramType := index (split (strings.ToLower $lang) "-") 1 }}
       {{- if not (in $supportedTypes .) }}
         {{- errorf "The 'render-codeblock' template was called with an invalid 'Kroki' type %q. Valid types are %s. See %s" $typesDelimited $position }}
       {{- else }}
-
-
-
         {{- with $code }}
           {{- $kroki := dict
             "diagram_source" .
@@ -78,6 +68,5 @@ $lang     --> {{ $lang }}
     {{- else }}
       {{- errorf "The %q shortcode requires a %q parameter. Valid types are %s. See %s" $.Name "type" $typesDelimited $position }}
     {{- end }}
-
-{{ end }}
-{{ end }}
+  {{- end }}
+{{- end -}}

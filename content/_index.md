@@ -18,7 +18,7 @@ gantt
   another task     :24d
 ```
 
-```bash {.my-code-class #my-code-id style="dracula" linenos="table"}
+```bash {.my-code-class #my-code-id style="monokai" linenos="table"}
 declare $a=1
 if [[ "$a" eq 1 ]];then
   echo "$a"
