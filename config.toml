@@ -1,3 +1,51 @@
-baseURL = 'https://example.org/'
+baseURL = 'https://example.org/foo/'
 languageCode = 'en-us'
 title = 'Hugo GitHub Issue #10606'
+defaultContentLanguage = 'en'
+defaultContentLanguageInSubdir = true
+
+[markup.goldmark.parser]
+wrapStandAloneImageWithinParagraph = false # default is true
+
+[markup.goldmark.parser.attribute]
+block = true # default is false
+
+[languages.en]
+contentDir = 'content/en'
+languageCode = 'en-US'
+languageName = 'English'
+weight = 1
+
+[languages.de]
+contentDir = 'content/de'
+languageCode = 'de-DE'
+languageName = 'Deutsch'
+weight = 2
+
+[[menu.main]]
+name = 'Home'
+pageRef = '/'
+weight = 10
+
+[[menu.main]]
+name = 'Posts'
+pageRef = '/posts'
+weight = 20
+
+[params.style]
+body_bg_img_url = 'images/c.jpg' #located in the assets directory
+body_color = '#1b3763'
+container_max_width = '1024px'
+font_family_base = 'system-ui, -apple-system, BlinkMacSystemFont, “Segoe UI”, Roboto, Oxygen-Sans, Ubuntu, Cantarell, “Helvetica Neue”, Arial, sans-serif'
+font_size_base = '16px'
+line_height_base = '1.6'
+
+[params.render_hooks.link]
+errorLevel = 'error' # ignore (default), warning, or error
+
+[params.render_hooks.image]
+errorLevel = 'error' # ignore (default), warning, or error
+partialProcessImage = 'process-image.html' # optional
+
+[permalinks]
+posts = "/my-posts/:year/:month:/:day/:slug/"

@@ -1,0 +1,12 @@
+// Tables
+// ----------------------------------------------------------------------------
+
+table {
+  border-collapse: collapse;
+}
+
+td,
+th {
+  border: 1px solid $body-color;
+  padding: 0 0.5rem;
+}

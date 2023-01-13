@@ -1,0 +1,6 @@
+{{- with resources.Get "js/main.js" }}
+  {{- with . | js.Build }}
+    <script src="{{ .RelPermalink }}"></script>
+    <link rel="stylesheet" href="{{ .RelPermalink }}">
+  {{- end }}
+{{- end -}}

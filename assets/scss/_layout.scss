@@ -1,0 +1,18 @@
+// Layout
+// ----------------------------------------------------------------------------
+
+body {
+  background: linear-gradient(
+      rgba(255, 255, 255, 0.6),
+      rgba(2550, 255, 255, 0.6)
+    ),
+    url($body-bg-img-url) no-repeat center/cover;
+  height: 100vh;
+  width: 100vw;
+}
+
+.container {
+  max-width: $container-max-width;
+  margin: 0 auto;
+  padding-bottom: 3rem;
+}

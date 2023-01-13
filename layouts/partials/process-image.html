@@ -1,0 +1,220 @@
+{{- /*
+Processes an image based on the query string in the image destination.
+
+Query string parameters:
+
+Key   Description          Type                Example
+---   -----------------   -----------------   -------------
+a     anchor              processing option   smart
+c     class               element attribute   my-class
+f     format              processing option   webp
+h     height              processing option   400
+i     id                  element attribute   my-id
+l     loading             element attribute   lazy
+m     method              processing method   resize
+p     preset              processing option   photo
+q     quality             processing option   75
+r     rotation            processing option   90, -90, 180
+w     width               processing option   600
+bc    background color    processing option   ffaa33 or fa3
+rs    resampling filter   processing option   lanczos
+
+Notes:
+
+- Keys are case-sensitive
+- Values are case-insensitive
+- The default processing method is resize
+- To add multiple classes, provide multiple c key/value pairs in the query
+  string
+- As with all query strings, the order of the key/value pairs is irrelevant
+- The default values for anchor, background color, preset, quality, and
+  resampling filter are inherited from site configuration
+- The anchor, format, method, preset, quality, rotation, background color, and
+  resampling filter are ignored with SVG images
+
+Image processing documentation:
+
+- https://gohugo.io/content-management/image-processing/#image-processing-methods
+- https://gohugo.io/content-management/image-processing/#image-processing-options
+- https://gohugo.io/content-management/image-processing/#imaging-configuration
+
+@param {string} contentPath The markdown file containing the image reference.
+@param {obj} queryString The query string from the markdown destination.
+@param {obj} resource The image resource.
+
+@returns {obj} attributes
+
+@example {{ partial "foo" (dict "contentPath" $contentPath "queryString" $u.Query "resource" $r) }}
+*/}}
+
+{{- /* Initialize parameters. */}}
+{{- $contentPath := .contentPath }}
+{{- $queryString := .queryString }}
+{{- $r := .resource }}
+
+{{- /* Define allowable values. */}}
+{{- $validAnchors := slice "bottom" "bottomleft" "bottomright" "center" "left" "right" "smart" "top" "topleft" "topright" }}
+{{- $validFormats := slice "bmp" "gif" "jpg" "jpeg" "png" "tif" "tiff" "webp" }}
+{{- $validMethods := slice "crop" "fill" "fit" "resize" }}
+{{- $validPresets := slice "drawing" "icon" "photo" "picture" "text" }}
+{{- $validLoading := slice "eager" "lazy" }}
+{{- $validResamplingFilters := slice "bartlett" "blackman" "box" "bspline" "catmullrom" "cosine" "gaussian" "hamming" "hann" "hermite" "lanczos" "linear" "mitchellnetravali" "nearestneighbor" "welch" }}
+
+{{- /* Set default values. */}}
+{{- $anchor := "" }}
+{{- $class := "" }}
+{{- $format := "" }}
+{{- $height := "" }}
+{{- $id := "" }}
+{{- $loading := "" }}
+{{- $method := "resize" }}
+{{- $preset := "" }}
+{{- $quality := 0 }}
+{{- $rotation := 0 }}
+{{- $width := "" }}
+{{- $backgroundColor := "" }}
+{{- $resamplingFilter := "" }}
+
+{{- /* Parse query string. */}}
+{{- with $queryString }}
+  {{- with .Get "a" | lower }}
+    {{- if in $validAnchors . }}
+      {{- $anchor = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid anchor. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+  {{- if .Has "c" }}
+    {{- $class = delimit (index . "c") " " | lower }}
+  {{- end }}
+  {{- with .Get "f" | lower }}
+    {{- if in $validFormats . }}
+      {{- $format = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid format. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+  {{- with .Get "h" }}
+    {{- $height = int . }}
+  {{- end }}
+  {{- with .Get "i" | lower }}
+    {{- $id = . }}
+  {{- end }}
+  {{- with .Get "l" | lower }}
+    {{- if in $validLoading . }}
+      {{- $loading = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid loading attribute. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+  {{- with .Get "m" | lower }}
+    {{- if in $validMethods . }}
+      {{- $method = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid method. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+  {{- with .Get "p" | lower }}
+    {{- if in $validPresets . }}
+      {{- $preset = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid preset. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+  {{- with .Get "q" }}
+    {{- $quality = int . }}
+  {{- end }}
+  {{- with .Get "r" }}
+    {{- $rotation = int . }}
+  {{- end }}
+  {{- with .Get "w" }}
+    {{- $width = int . }}
+  {{- end }}
+  {{- with .Get "bc" | lower }}
+    {{- if findRE `^[a-f0-9]{3}$|^[a-f0-9]{6}$` . }}
+      {{- $backgroundColor = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid background color. See %s" . $contentPath }}
+    {{- end }}
+    {{- $backgroundColor = . }}
+  {{- end }}
+  {{- with .Get "rs" | lower }}
+    {{- if in $validResamplingFilters . }}
+      {{- $resamplingFilter = . }}
+    {{- else }}
+      {{- errorf "Unable to process image: %q is not a valid resampling filter. See %s" . $contentPath }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+
+{{- /* Set image processing options. */}}
+{{- $options := slice }}
+{{- if not (eq $r.MediaType.SubType "svg") }}
+  {{- if and $width $height }}
+    {{- $options = $options | append (printf "%dx%d" $width $height) }}
+  {{- else if and $width (not $height) }}
+    {{- $options = $options | append (printf "%dx" $width) }}
+  {{- else if and $height (not $width) }}
+    {{- $options = $options | append (printf "x%d" $height) }}
+  {{- else }}
+    {{- if in (slice 90 -90 270 -270) $rotation }}
+      {{- /* Reverse width and height when rotating 90 degrees without resizing. */}}
+      {{- $options = $options | append (printf "%dx%d" $r.Height $r.Width) }}
+    {{- else }}
+      {{- $options = $options | append (printf "%dx%d" $r.Width $r.Height) }}
+    {{- end }}
+  {{- end }}
+  {{- with $anchor }}
+    {{- $options = $options | append . }}
+  {{- end }}
+  {{- with $format }}
+    {{- $options = $options | append . }}
+  {{- end }}
+  {{- with $preset }}
+    {{- $options = $options | append . }}
+  {{- end }}
+  {{- with $quality }}
+    {{- $options = $options | append (printf "q%d" .) }}
+  {{- end }}
+  {{- with $rotation }}
+    {{- $options = $options | append (printf "r%d" .) }}
+  {{- end }}
+  {{- with $backgroundColor }}
+    {{- $options = $options | append (printf "#%v" .) }}
+  {{- end }}
+  {{- with $resamplingFilter }}
+    {{- $options = $options | append . }}
+  {{- end }}
+{{- end }}
+
+{{- /* Process image. */}}
+{{- if not (eq $r.MediaType.SubType "svg") }}
+  {{- $options = delimit $options " " | string }}
+  {{- if eq $method "crop" }}
+    {{- $r = $r.Crop $options }}
+  {{- else if eq $method "fill" }}
+    {{- $r = $r.Fill $options }}
+  {{- else if eq $method "fit" }}
+    {{- $r = $r.Fit $options }}
+  {{- else if eq $method "resize" }}
+    {{- $r = $r.Resize $options }}
+  {{- else }}
+    {{- errorf "Invalid image processing method. See %s" $contentPath }}
+  {{- end }}
+  {{- $width = $r.Width }}
+  {{- $height = $r.Height }}
+{{- end }}
+
+{{- /* Set image element attributes. */}}
+{{- $attrs := dict "src" $r.RelPermalink "width" (string $width) "height" (string $height) }}
+{{- with $class }}
+  {{- $attrs = merge $attrs (dict "class" .) }}
+{{- end }}
+{{- with $id }}
+  {{- $attrs = merge $attrs (dict "id" .) }}
+{{- end }}
+{{- with $loading }}
+  {{- $attrs = merge $attrs (dict "loading" .) }}
+{{- end }}
+
+{{- return $attrs }}
