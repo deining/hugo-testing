@@ -1,0 +1,5 @@
+{{ define "main" }}
+  <h1>{{ .Title }}</h1>
+  {{ .Content }}
+  {{ (site.GetPage "/books/book-1").Content }}
+{{ end }}
