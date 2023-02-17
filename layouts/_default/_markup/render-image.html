@@ -1,17 +1,31 @@
 {{- /*
-Internal destinations are resolved in this order:
+Copyright 2023 Veriphor LLC
 
-  1. Page resource
-  2. Global resource
+Licensed under the Apache License, Version 2.0 (the "License"); you may not
+use this file except in compliance with the License. You may obtain a copy of
+the License at
 
-External destinations are also captured as resources to determine width and
-height attributes. The rendered URLs for these resources are relative to the
-generated site.
+https://www.apache.org/licenses/LICENSE-2.0
 
-Global resources must be placed within the assets directory. If these resources
-are located in the static directory, and you are unable or unwilling to move
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations under
+the License.
+*/}}
+
+{{- /*
+This render hook resolves internal destinations in the following order:
+
+  1. Page resource (e.g., an image in a page bundle)
+  2. Global resource (e.g., an image in the assets directory)
+
+External destinations are also captured as resources and served locally.
+
+You must place global resources in the assets directory. If you have placed
+your resources in the static directory, and you are unable or unwilling to move
 them, you must mount the static directory to the assets directory by including
-both of these entries in the site configuration:
+both of these entries in your site configuration:
 
   [[module.mounts]]
   source = 'assets'
@@ -21,27 +35,50 @@ both of these entries in the site configuration:
   source = 'static'
   target = 'assets'
 
-By default, if the destination cannot be resolved, it will be passed through
-without modification. To emit a warning or error, set the error level in the
-site configuration:
+By default, if this render hook is unable to resolve a destination, it passes
+the destination through without modification. To emit a warning or error, set
+the error level in your site configuration:
 
   [params.render_hooks.image]
   errorLevel = 'error' # ignore (default), warning, or error
 
-The example above will throw an error and fail the build if the destination
-cannot be resolved.
+In this configuration, when this render hook cannot resolve a destination, it
+throws an error and fails the build.
 
-This render hook may be unable to resolve destinations created with the ref and
-relref shortcodes. Unless the error level is set to ignore, you should not use
-either of these shortcodes.
+Image render hooks are also used to:
+
+  - Resize, crop, rotate, filter, and convert images
+  - Build responsive images using srcset and sizes attributes
+  - Wrap images inside of a picture element
+  - Transform standalone images into figure elements
+
+To perform any of these operations, you can “hook” into this render hook with a
+partial template, after the render hook has captured the resource.
+
+@param {map} Attributes The markdown attributes.
+@param {string} Destination The image destination.
+@param {bool} IsBlock Returns true if a standalone image is not wrapped within a paragraph element.
+@param {int} Ordinal The zero-based ordinal of the image on the page.
+@param {page} Page A reference to the page containing the image.
+@param {string} PlainText The image description as plain text.
+@param {string} Text The image description.
+@param {string} Title The image title.
+
+@returns {template.html}
 */}}
+
+{{- /* Verify minimum required version. */}}
+{{- $minHugoVersion := "0.110.0" }}
+{{- if lt hugo.Version $minHugoVersion }}
+  {{- errorf "The image render hook requires Hugo v%s or later." $minHugoVersion  }}
+{{- end }}
 
 {{- /* Action when unable to resolve destination: ignore, warning, or error. */}}
 {{- $errorLevel := or site.Params.render_hooks.image.errorLevel "ignore" | lower }}
 
 {{- /* Validate action. */}}
 {{- if not (in (slice "ignore" "warning" "error") $errorLevel) }}
-  {{- errorf "%q is an invalid action when unable to resolve destination" $errorLevel }}
+  {{- errorf "%q is an invalid action when unable to resolve an image destination" $errorLevel }}
 {{- end }}
 
 {{- /* Determine content path for warning and error messages. */}}
